@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "build",
+      "path": "apps/api",
+      "group": "build",
+      "problemMatcher": ["$tsc"],
+      "label": "npm: build - apps/api"
+    },
+    {
+      "type": "npm",
+      "script": "dev",
+      "path": "apps/api",
+      "group": "none",
+      "problemMatcher": [],
+      "label": "npm: dev - apps/api",
+      "isBackground": true
+    },
+    {
+      "type": "npm",
+      "script": "dev",
+      "path": "apps/web",
+      "group": "none",
+      "problemMatcher": [],
+      "label": "npm: dev - apps/web",
+      "isBackground": true
+    }
+  ]
+}
