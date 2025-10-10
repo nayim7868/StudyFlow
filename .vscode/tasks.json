@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "docker:up",
+      "type": "shell",
+      "command": "docker compose -f infra/docker-compose.yml up -d",
+      "problemMatcher": []
+    },
+    {
+      "label": "dev",
+      "type": "shell",
+      "command": "pnpm -w dev",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "pnpm -w build",
+      "problemMatcher": []
+    },
+    {
+      "label": "lint",
+      "type": "shell",
+      "command": "pnpm -w lint",
+      "problemMatcher": []
+    }
+  ]
+}
