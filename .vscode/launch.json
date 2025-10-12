@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug API",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/api/src/index.ts",
+      "cwd": "${workspaceFolder}/packages/api",
+      "runtimeArgs": ["--loader", "tsx/esm"],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Debug Web",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/web/node_modules/.bin/vite",
+      "cwd": "${workspaceFolder}/packages/web",
+      "args": ["--port", "5173"],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug All",
+      "configurations": ["Debug API", "Debug Web"],
+      "stopAll": true
+    }
+  ]
+}
