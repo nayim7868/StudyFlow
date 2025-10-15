@@ -4,6 +4,14 @@ import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import dotenv from 'dotenv';
+import { db } from './db/index.js';
+import { roomRoutes } from './routes/rooms.js';
+import { postRoutes } from './routes/posts.js';
+import { answerRoutes } from './routes/answers.js';
+import { voteRoutes } from './routes/votes.js';
+
+dotenv.config();
 
 const fastify = Fastify({
   logger: true,
@@ -37,6 +45,12 @@ await fastify.register(swaggerUi, {
   },
 });
 
+// Register route modules
+await fastify.register(roomRoutes);
+await fastify.register(postRoutes);
+await fastify.register(answerRoutes);
+await fastify.register(voteRoutes);
+
 // Health check routes
 fastify.get('/healthz', {
   schema: {
@@ -67,25 +81,42 @@ fastify.get('/readyz', {
       200: {
         type: 'object',
         properties: {
-          status: { type: 'string' },
+          ok: { type: 'boolean' },
           timestamp: { type: 'string' },
         },
       },
     },
   },
 }, async (request, reply) => {
-  return {
-    status: 'ready',
-    timestamp: new Date().toISOString(),
-  };
+  try {
+    // Test database connection
+    await db.execute('SELECT 1');
+
+    // Test Redis connection (if available)
+    // For now, we'll assume Redis is working if we get here
+    // In a real implementation, you'd test Redis here
+
+    return {
+      ok: true,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    reply.status(503);
+    return {
+      ok: false,
+      timestamp: new Date().toISOString(),
+      error: 'Service not ready',
+    };
+  }
 });
 
 // Start server
 const start = async () => {
   try {
-    await fastify.listen({ port: 4000, host: '0.0.0.0' });
-    console.log('Server listening on http://localhost:4000');
-    console.log('API docs available at http://localhost:4000/docs');
+    const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
+    await fastify.listen({ port, host: '0.0.0.0' });
+    console.log(`Server listening on http://localhost:${port}`);
+    console.log(`API docs available at http://localhost:${port}/docs`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

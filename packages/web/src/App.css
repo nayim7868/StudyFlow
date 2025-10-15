@@ -86,4 +86,39 @@
   font-size: 0.9rem;
   max-width: 100%;
   word-break: break-all;
+  margin-top: 1rem;
+}
+
+.api-tests {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.api-tests h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+}
+
+.test-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.test-buttons .button {
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
+
+.status pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
 }
