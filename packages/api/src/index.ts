@@ -1,3 +1,5 @@
+
+import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -6,10 +8,10 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import dotenv from 'dotenv';
 import { db } from './db/index.js';
-import { roomRoutes } from './routes/rooms.js';
-import { postRoutes } from './routes/posts.js';
-import { answerRoutes } from './routes/answers.js';
-import { voteRoutes } from './routes/votes.js';
+import roomRoutes from './routes/rooms.js';
+import postRoutes from './routes/posts.js';
+import answerRoutes from './routes/answers.js';
+import voteRoutes from './routes/votes.js';
 
 dotenv.config();
 
@@ -51,6 +53,15 @@ await fastify.register(postRoutes);
 await fastify.register(answerRoutes);
 await fastify.register(voteRoutes);
 
+// Error handler
+fastify.setErrorHandler((error, request, reply) => {
+  fastify.log.error(error);
+  reply.status(500).send({
+    error: 'Internal Server Error',
+    details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+  });
+});
+
 // Health check routes
 fastify.get('/healthz', {
   schema: {
@@ -89,12 +100,21 @@ fastify.get('/readyz', {
   },
 }, async (request, reply) => {
   try {
-    // Test database connection
-    await db.execute('SELECT 1');
+    // Test database connection with timeout
+    const dbPromise = db.execute('SELECT 1');
+    const dbTimeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('DB timeout')), 500)
+    );
+    await Promise.race([dbPromise, dbTimeout]);
 
-    // Test Redis connection (if available)
-    // For now, we'll assume Redis is working if we get here
-    // In a real implementation, you'd test Redis here
+    // Test Redis connection with timeout
+    const redisPromise = fetch(`${process.env.REDIS_URL || 'redis://localhost:6379'}/ping`)
+      .then(res => res.text())
+      .then(text => text === 'PONG');
+    const redisTimeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Redis timeout')), 500)
+    );
+    await Promise.race([redisPromise, redisTimeout]);
 
     return {
       ok: true,

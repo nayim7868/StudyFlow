@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
 import { rooms, roomMembers, posts, users } from '../db/schema.js';
@@ -13,7 +13,7 @@ const getRoomSchema = z.object({
   slug: z.string(),
 });
 
-export async function roomRoutes(fastify: FastifyInstance) {
+const roomRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/rooms', {
     schema: {
       description: 'Create a new room',
@@ -142,4 +142,41 @@ export async function roomRoutes(fastify: FastifyInstance) {
       })),
     };
   });
-}
+
+  fastify.get('/rooms', {
+    schema: {
+      description: 'List all rooms',
+      tags: ['rooms'],
+      response: {
+        200: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              slug: { type: 'string' },
+              createdAt: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const allRooms = await db.select({
+      id: rooms.id,
+      name: rooms.name,
+      slug: rooms.slug,
+      createdAt: rooms.createdAt,
+    }).from(rooms).orderBy(desc(rooms.createdAt));
+
+    return allRooms.map(room => ({
+      id: room.id,
+      name: room.name,
+      slug: room.slug,
+      createdAt: room.createdAt.toISOString(),
+    }));
+  });
+};
+
+export default roomRoutes;

@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
 import { votes } from '../db/schema.js';
@@ -10,7 +10,7 @@ const createVoteSchema = z.object({
   value: z.union([z.literal(-1), z.literal(1)]),
 });
 
-export async function voteRoutes(fastify: FastifyInstance) {
+const voteRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/votes', {
     schema: {
       description: 'Create or update a vote',
@@ -99,4 +99,6 @@ export async function voteRoutes(fastify: FastifyInstance) {
       value,
     };
   });
-}
+};
+
+export default voteRoutes;

@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
 import { answers } from '../db/schema.js';
@@ -9,7 +9,7 @@ const createAnswerSchema = z.object({
   bodyMarkdown: z.string().min(1),
 });
 
-export async function answerRoutes(fastify: FastifyInstance) {
+const answerRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/answers', {
     schema: {
       description: 'Create a new answer',
@@ -57,4 +57,6 @@ export async function answerRoutes(fastify: FastifyInstance) {
       createdAt: answer.createdAt.toISOString(),
     };
   });
-}
+};
+
+export default answerRoutes;

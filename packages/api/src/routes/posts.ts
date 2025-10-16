@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
 import { posts, answers, users } from '../db/schema.js';
@@ -15,7 +15,7 @@ const getPostSchema = z.object({
   id: z.string().uuid(),
 });
 
-export async function postRoutes(fastify: FastifyInstance) {
+const postRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/posts', {
     schema: {
       description: 'Create a new post',
@@ -146,4 +146,6 @@ export async function postRoutes(fastify: FastifyInstance) {
       })),
     };
   });
-}
+};
+
+export default postRoutes;
