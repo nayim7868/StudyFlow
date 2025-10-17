@@ -6,7 +6,7 @@ import { markdownToText } from '../util/markdown.js';
 
 const createAnswerSchema = z.object({
   postId: z.string().uuid(),
-  bodyMarkdown: z.string().min(1),
+  bodyMarkdown: z.string().trim().min(3).max(10000),
 });
 
 const answerRoutes: FastifyPluginAsync = async (fastify) => {

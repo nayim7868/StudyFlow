@@ -7,6 +7,7 @@ interface Post {
   title: string;
   status: string;
   createdAt: string;
+  score: number;
 }
 
 interface RoomData {
@@ -187,9 +188,21 @@ export default function Room() {
                     {post.title}
                   </Link>
                 </h3>
-                <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
-                  Status: {post.status} • Created: {new Date(post.createdAt).toLocaleDateString()}
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
+                  <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
+                    Status: {post.status} • Created: {new Date(post.createdAt).toLocaleDateString()}
+                  </p>
+                  <span style={{
+                    background: post.score >= 0 ? '#28a745' : '#dc3545',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    {post.score > 0 ? '+' : ''}{post.score}
+                  </span>
+                </div>
               </div>
             ))}
           </div>

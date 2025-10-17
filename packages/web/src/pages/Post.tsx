@@ -5,8 +5,10 @@ import { api } from '../api/client';
 interface Answer {
   id: string;
   bodyMarkdown: string;
+  bodyText: string;
   isAccepted: boolean;
   createdAt: string;
+  score: number;
 }
 
 interface PostData {
@@ -17,8 +19,14 @@ interface PostData {
     status: string;
     createdAt: string;
     updatedAt: string;
+    score: number;
   };
   answers: Answer[];
+  room: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }
 
 export default function Post() {
@@ -33,6 +41,7 @@ export default function Post() {
   });
 
   const [voting, setVoting] = useState<Set<string>>(new Set());
+  const [scores, setScores] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (id) {
@@ -49,6 +58,15 @@ export default function Post() {
       setError(response.error);
     } else {
       setPostData(response.data);
+      // Initialize scores
+      if (response.data) {
+        setScores({
+          [response.data.post.id]: response.data.post.score,
+          ...Object.fromEntries(
+            response.data.answers.map(answer => [answer.id, answer.score])
+          )
+        });
+      }
     }
     setLoading(false);
   };
@@ -87,6 +105,12 @@ export default function Post() {
 
     setVoting(prev => new Set(prev).add(entityId));
 
+    // Optimistically update score
+    setScores(prev => ({
+      ...prev,
+      [entityId]: (prev[entityId] || 0) + value
+    }));
+
     const response = await api.createVote({
       entityType,
       entityId,
@@ -101,9 +125,17 @@ export default function Post() {
 
     if (response.error) {
       setError(response.error);
-    } else {
-      // Reload to get updated vote counts
-      loadPost();
+      // Revert optimistic update
+      setScores(prev => ({
+        ...prev,
+        [entityId]: (prev[entityId] || 0) - value
+      }));
+    } else if (response.data) {
+      // Update with actual score from server
+      setScores(prev => ({
+        ...prev,
+        [entityId]: response.data.score
+      }));
     }
   };
 
@@ -128,6 +160,17 @@ export default function Post() {
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ marginBottom: '20px' }}>
         <Link to="/" style={{ color: '#007bff', textDecoration: 'none' }}>← Back to Rooms</Link>
+        {postData.room && (
+          <span style={{ margin: '0 10px', color: '#666' }}>•</span>
+        )}
+        {postData.room && (
+          <Link
+            to={`/r/${postData.room.slug}`}
+            style={{ color: '#007bff', textDecoration: 'none' }}
+          >
+            {postData.room.name}
+          </Link>
+        )}
       </div>
 
       {error && (
@@ -198,6 +241,16 @@ export default function Post() {
           >
             👎 Downvote
           </button>
+          <span style={{
+            background: (scores[postData.post.id] || 0) >= 0 ? '#28a745' : '#dc3545',
+            color: 'white',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }}>
+            {(scores[postData.post.id] || 0) > 0 ? '+' : ''}{scores[postData.post.id] || 0}
+          </span>
           <span style={{ color: '#666', fontSize: '14px' }}>
             Status: {postData.post.status} • {new Date(postData.post.createdAt).toLocaleDateString()}
           </span>
@@ -282,6 +335,16 @@ export default function Post() {
                   >
                     👎
                   </button>
+                  <span style={{
+                    background: (scores[answer.id] || 0) >= 0 ? '#28a745' : '#dc3545',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    {(scores[answer.id] || 0) > 0 ? '+' : ''}{scores[answer.id] || 0}
+                  </span>
                   <span style={{ color: '#666', fontSize: '14px' }}>
                     {answer.isAccepted && '✓ Accepted • '}
                     {new Date(answer.createdAt).toLocaleDateString()}

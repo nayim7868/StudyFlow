@@ -1,16 +1,16 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
-import { rooms, roomMembers, posts, users } from '../db/schema.js';
-import { eq, desc } from 'drizzle-orm';
+import { rooms, roomMembers, posts, users, votes } from '../db/schema.js';
+import { eq, desc, sql, and } from 'drizzle-orm';
 
 const createRoomSchema = z.object({
-  name: z.string().min(1).max(255),
-  slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/),
+  name: z.string().trim().min(1).max(255),
+  slug: z.string().trim().toLowerCase().min(3).max(50).regex(/^[a-z0-9-]+$/),
 });
 
 const getRoomSchema = z.object({
-  slug: z.string(),
+  slug: z.string().trim().toLowerCase().min(3).max(50).regex(/^[a-z0-9-]+$/),
 });
 
 const roomRoutes: FastifyPluginAsync = async (fastify) => {
@@ -121,9 +121,15 @@ const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: posts.title,
         status: posts.status,
         createdAt: posts.createdAt,
+        score: sql<number>`COALESCE(SUM(${votes.value}), 0)`,
       })
       .from(posts)
+      .leftJoin(votes, and(
+        eq(votes.entityType, 'post'),
+        eq(votes.entityId, posts.id)
+      ))
       .where(eq(posts.roomId, room[0].id))
+      .groupBy(posts.id)
       .orderBy(desc(posts.createdAt))
       .limit(20);
 
@@ -139,6 +145,7 @@ const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: post.title,
         status: post.status,
         createdAt: post.createdAt.toISOString(),
+        score: Number(post.score),
       })),
     };
   });

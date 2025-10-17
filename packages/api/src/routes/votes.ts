@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
 import { votes } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 
 const createVoteSchema = z.object({
   entityType: z.enum(['post', 'answer']),
@@ -67,8 +67,6 @@ const voteRoutes: FastifyPluginAsync = async (fastify) => {
               eq(votes.entityId, entityId)
             )
           );
-
-        return { message: 'Vote removed' };
       } else {
         // Update to new value
         await db
@@ -92,11 +90,28 @@ const voteRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
+    // Get updated score and current user's vote
+    const scoreResult = await db
+      .select({ score: sql<number>`COALESCE(SUM(${votes.value}), 0)` })
+      .from(votes)
+      .where(and(
+        eq(votes.entityType, entityType),
+        eq(votes.entityId, entityId)
+      ));
+
+    const currentVoteResult = await db
+      .select({ value: votes.value })
+      .from(votes)
+      .where(and(
+        eq(votes.userId, demoUserId),
+        eq(votes.entityType, entityType),
+        eq(votes.entityId, entityId)
+      ))
+      .limit(1);
+
     return {
-      userId: demoUserId,
-      entityType,
-      entityId,
-      value,
+      score: Number(scoreResult[0]?.score || 0),
+      currentUserValue: currentVoteResult[0]?.value || null,
     };
   });
 };

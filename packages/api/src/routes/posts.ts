@@ -1,14 +1,14 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
-import { posts, answers, users } from '../db/schema.js';
-import { eq, asc } from 'drizzle-orm';
+import { posts, answers, users, votes, rooms } from '../db/schema.js';
+import { eq, asc, sql, and } from 'drizzle-orm';
 import { markdownToText } from '../util/markdown.js';
 
 const createPostSchema = z.object({
   roomId: z.string().uuid(),
-  title: z.string().min(1).max(500),
-  bodyMarkdown: z.string().min(1),
+  title: z.string().trim().min(3).max(200),
+  bodyMarkdown: z.string().trim().min(3).max(10000),
 });
 
 const getPostSchema = z.object({
@@ -118,16 +118,46 @@ const postRoutes: FastifyPluginAsync = async (fastify) => {
       return { error: 'Post not found' };
     }
 
+    // Get post score
+    const postScoreResult = await db
+      .select({ score: sql<number>`COALESCE(SUM(${votes.value}), 0)` })
+      .from(votes)
+      .where(and(
+        eq(votes.entityType, 'post'),
+        eq(votes.entityId, id)
+      ));
+
+    const postScore = Number(postScoreResult[0]?.score || 0);
+
+    // Get answers with scores
     const postAnswers = await db
       .select({
         id: answers.id,
         bodyMarkdown: answers.bodyMarkdown,
+        bodyText: answers.bodyText,
         isAccepted: answers.isAccepted,
         createdAt: answers.createdAt,
+        score: sql<number>`COALESCE(SUM(${votes.value}), 0)`,
       })
       .from(answers)
+      .leftJoin(votes, and(
+        eq(votes.entityType, 'answer'),
+        eq(votes.entityId, answers.id)
+      ))
       .where(eq(answers.postId, id))
+      .groupBy(answers.id)
       .orderBy(asc(answers.createdAt));
+
+    // Get room info
+    const roomInfo = await db
+      .select({
+        id: rooms.id,
+        name: rooms.name,
+        slug: rooms.slug,
+      })
+      .from(rooms)
+      .where(eq(rooms.id, post[0].roomId))
+      .limit(1);
 
     return {
       post: {
@@ -137,13 +167,21 @@ const postRoutes: FastifyPluginAsync = async (fastify) => {
         status: post[0].status,
         createdAt: post[0].createdAt.toISOString(),
         updatedAt: post[0].updatedAt.toISOString(),
+        score: postScore,
       },
       answers: postAnswers.map(answer => ({
         id: answer.id,
         bodyMarkdown: answer.bodyMarkdown,
+        bodyText: answer.bodyText,
         isAccepted: answer.isAccepted,
         createdAt: answer.createdAt.toISOString(),
+        score: Number(answer.score),
       })),
+      room: roomInfo[0] ? {
+        id: roomInfo[0].id,
+        name: roomInfo[0].name,
+        slug: roomInfo[0].slug,
+      } : null,
     };
   });
 };
